@@ -1,6 +1,12 @@
 # img_with_other_data
 画像と他データを一緒に入れた場合の解析を行います
 
+現在、コーディング中
+
+コーディング先、URL
+
+https://drive.google.com/drive/u/3/folders/1nXrEd2XO9TgLrJy09xchVEh3A-wcvNq8
+
 
 
 ### 円錐角膜の前眼部OCT（Axial, Cornea, 両方結合したもの）から円錐角膜が進行するかしないかを識別する
