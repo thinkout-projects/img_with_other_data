@@ -1,21 +1,28 @@
 import os
+import sys
+import shutil
 import pandas as pd
 import tensorflow as tf
 import optuna
-from utils import file_check, plot_history, model_delete, printWithDate
+from utils import file_check, plot_history_classifier, plot_history_regression, model_delete, printWithDate, result_delete_check
 from k_fold_split import Stratified_group_k_fold
 from data_augment import ExtraProcess, BasicProcess
-from models import concat_model
-from learning import train
-from predict import predict
-from analysis import summary
+from models import concat_model_regression, concat_model_classifier
+from learning import train_regression, train_classifier
+from predict import predict_regression, predict_classifier
+from analysis import summary_classification, summary_regression
 
 
 
 
 def main():
+    current_directory = os.path.dirname(os.path.abspath(sys.argv[0]))
+    os.chdir(current_directory) # カレントディレクトリに移動
+    #過去のresultフォルダを読み込むとエラー吐くので削除
+    result_delete_check()
+
     printWithDate("main() function is started")
-    img_folder = "Axial_img"
+    img_folder = "Cornea_img"
     split_folder = "split"
     data_csv = "data_ensui.csv"
     file_col = "fileName"
@@ -29,19 +36,23 @@ def main():
     size = [224, 224]
     ch = 3
     basic_process = BasicProcess()
-    extra_process = ExtraProcess()
+    extra_process = ExtraProcess(histogram_equalization=False)
     n_trials = 10
     epochs = 40
     print(str(n_splits), "-fold", str(n_trials), "-trials", str(epochs) , "epochs")
     BATCH_SIZE = 32
     AUTOTUNE = tf.data.experimental.AUTOTUNE
-    loss = "binary_crossentropy"
-    metrics = "accuracy"
+    if n_classes >= 2:
+        loss = "binary_crossentropy"
+        metrics = ["accuracy"]
+    else:
+        loss = "mean_squared_error"
+        metrics = ["mae"]
     result_roothead = "result"
     model_folder = "model"
     figure_folder = "figure"
     csv_folder = "csv"
-    pos_col = "1"
+    pos_col = "1" #classificationのみ
     result_summary_csv = "result_summary.csv"
 
     df = pd.read_csv(data_csv, encoding="shift-jis")
@@ -57,13 +68,17 @@ def main():
         shuffle=True,
         split_info_folder = split_folder
     )
-    df_train_list, df_test_list = sgkf.k_fold_classifier(df)
+    if n_classes == 1:
+        df_train_list, df_test_list = sgkf.k_fold_regressor(df)
+    else:
+        df_train_list, df_test_list = sgkf.k_fold_classifier(df)
+
 
     def each_cycle(trial):
         cycle_idx = trial.number
         lr = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
         hidden_dig = trial.suggest_int('hidden_dig', 6, 8)
-        img_ratio = trial.suggest_uniform('img_ratio', 0.2, 0.8)
+        par_ratio = trial.suggest_uniform('par_ratio', 0.2, 0.8)
 
         printWithDate("{}cycle start".format(cycle_idx))
         result_root = result_roothead + "_" + str(cycle_idx).zfill(3)
@@ -74,10 +89,13 @@ def main():
         os.makedirs(figure_folpath, exist_ok=True)
         os.makedirs(csv_folpath, exist_ok=True)
         optimizer = tf.keras.optimizers.SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
+        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
+
         for split_idx in range(n_splits):
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training start")
             tf.keras.backend.clear_session()
-            model = concat_model((224, 224, 3), (1), int(2**hidden_dig), img_ratio, 2)
+            model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), img_ratio, n_classes)
+            #model = concat_model_regression((224, 224, 3), (1), int(2**hidden_dig), img_ratio)
             # 訓練
             train_config = {
                 "split_folder": split_folder,
@@ -91,8 +109,8 @@ def main():
                 "ch": ch,
                 "basic_process": basic_process,
                 "extra_process": extra_process,
-                "par_mean": par_mean,
-                "par_std": par_std,
+                "par_mean": par_mean, # 非使用
+                "par_std": par_std, # 非使用
                 "n_classes": n_classes,
                 "epochs": epochs,
                 "BATCH_SIZE": BATCH_SIZE,
@@ -103,11 +121,17 @@ def main():
                 "loss": loss,
                 "metrics": metrics
             }
-            history = train(train_config)
+            if n_classes == 1:
+                history = train_regression(train_config)
+            else:
+                history = train_classifier(train_config)
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training finish")
             # plotおよび削除
             plot_fpath = os.path.join(figure_folpath, "history_{}.png".format(split_idx))
-            plot_history(history, plot_fpath)
+            if n_classes == 1:
+                plot_history_regression(history, plot_fpath)
+            else:
+                plot_history_classifier(history, plot_fpath)
             model_delete(model_folpath, split_idx)
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split evaluation start")
             predict_config = {
@@ -129,7 +153,10 @@ def main():
                 "model": model,
                 "csv_folpath": csv_folpath
             }
-            predict(predict_config)
+            if n_classes == 1:
+                predict_regression(predict_config)
+            else:
+                predict_classifier(predict_config)
         printWithDate(str(cycle_idx) + "cycle, summary start")
         summary_config = {
             "n_splits": n_splits,
@@ -137,7 +164,10 @@ def main():
             "csv_folpath": csv_folpath,
             "pos_col": pos_col
         }
-        return summary(summary_config)
+        if n_classes == 1:
+            return summary_regression(summary_config)
+        else:
+            return summary_classification(summary_config)
 
     study = optuna.create_study()
     study.optimize(each_cycle, n_trials=n_trials)

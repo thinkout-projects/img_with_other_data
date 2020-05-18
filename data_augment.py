@@ -69,7 +69,7 @@ class ExtraProcess:
     amount = 0.004
 
     def __init__(self, contrast=True, gamma=True, gaussian_blur=True,
-                 histogram_equalization=True, gaussian_noise=True, saltpepper_noise=True):
+                 histogram_equalization=False, gaussian_noise=True, saltpepper_noise=True):
         self.processes = []
         self.processes.append(self.nothing)
         if contrast:
