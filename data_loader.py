@@ -18,7 +18,7 @@ def load_and_data_augment(path, size, ch, basic_process, extra_process):
   return image
 
 
-@tf.function
+@tf.function(experimental_relax_shapes=True)
 def standardized_params(par, mean, std):
   return (tf.cast(par, dtype=tf.float32) -mean)/std
 
