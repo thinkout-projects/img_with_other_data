@@ -18,7 +18,6 @@ def summary_regression(config):
     n_splits = config["n_splits"]
     result_root = config["result_root"]
     csv_folpath = config["csv_folpath"]
-    #pos_col = config["pos_col"]
 
     dfs = [pd.read_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx))) for split_idx in range(n_splits)]
     df_summary = pd.concat(dfs)
