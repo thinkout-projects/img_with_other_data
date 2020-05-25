@@ -37,7 +37,6 @@ def train_regression(config):
 
     train_paths = [os.path.join(img_folder, f) for f in list(train_df[file_col])]
     train_pars = list(train_df[par_col])
-    #train_labels = [tags_to_label[tag] for tag in list(train_df[tag_col])]
     train_tags = list(train_df[tag_col])
     trainset = tf.data.Dataset.from_tensor_slices((train_paths, train_pars, train_tags))
     trainset = trainset.map(
@@ -53,7 +52,6 @@ def train_regression(config):
     val_df = pd.read_csv(os.path.join(split_folder, "test_{}.csv".format(split_idx)), encoding="shift-jis")
     val_paths = [os.path.join(img_folder, f) for f in list(val_df[file_col])]
     val_pars = list(val_df[par_col])
-    #val_labels = [tags_to_label[tag] for tag in list(val_df[tag_col])]
     val_tags = list(val_df[tag_col])
     valset = tf.data.Dataset.from_tensor_slices((val_paths, val_pars, val_tags))
     valset = valset.map(
@@ -110,7 +108,6 @@ def train_classifier(config):
     train_paths = [os.path.join(img_folder, f) for f in list(train_df[file_col])]
     train_pars = list(train_df[par_col])
     train_labels = [tags_to_label[tag] for tag in list(train_df[tag_col])]
-    #train_tags = list(train_df[tag_col])
     trainset = tf.data.Dataset.from_tensor_slices((train_paths, train_pars, train_labels))
     trainset = trainset.map(
         lambda path, par, label: ((load_and_data_augment(path, size, ch, basic_process, extra_process),
@@ -126,7 +123,6 @@ def train_classifier(config):
     val_paths = [os.path.join(img_folder, f) for f in list(val_df[file_col])]
     val_pars = list(val_df[par_col])
     val_labels = [tags_to_label[tag] for tag in list(val_df[tag_col])]
-    #val_tags = list(val_df[tag_col])
     valset = tf.data.Dataset.from_tensor_slices((val_paths, val_pars, val_labels))
     valset = valset.map(
         lambda path, par, label: ((load_img(path, size, ch),

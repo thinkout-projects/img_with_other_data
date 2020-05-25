@@ -32,6 +32,7 @@ def plot_history_classifier(history, fpath):
     plt.close()
     return
 
+
 def plot_history_regression(history, fpath):
     mae = history.history['mae']
     val_mae = history.history['val_mae']
@@ -48,6 +49,7 @@ def plot_history_regression(history, fpath):
     plt.savefig(fpath)
     plt.close()
     return
+
 
 def model_delete(model_folder, split_idx):
     model_paths = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))

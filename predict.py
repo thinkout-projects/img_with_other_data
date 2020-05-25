@@ -34,7 +34,6 @@ def predict_regression(config):
     test_df = pd.read_csv(os.path.join(split_folder, "test_{}.csv".format(split_idx)), encoding="shift-jis")
     test_paths = [os.path.join(img_folder, f) for f in list(test_df[file_col])]
     test_pars = list(test_df[par_col])
-    #test_labels = [tags_to_label[tag] for tag in list(test_df[tag_col])]
     test_tags = list(test_df[tag_col])
     testset = tf.data.Dataset.from_tensor_slices((test_paths, test_pars, test_tags))
     testset = testset.map(

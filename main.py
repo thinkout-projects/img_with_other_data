@@ -22,14 +22,14 @@ def main():
     result_delete_check()
 
     printWithDate("main() function is started")
-    img_folder = "Cornea_img"
+    img_folder = "img_folder"
     split_folder = "split"
-    data_csv = "data_ensui.csv"
+    data_csv = "data.csv"
     file_col = "fileName"
     ID_col = "None"
     hasID = False if ID_col == "None" else True
-    par_col = "age"
-    tag_col = "CXL"
+    par_col = "par"
+    tag_col = "tag"
     tags_to_label = {0: 0, 1: 1}
     n_classes = 2
     n_splits = 5
@@ -88,14 +88,19 @@ def main():
         os.makedirs(model_folpath, exist_ok=True)
         os.makedirs(figure_folpath, exist_ok=True)
         os.makedirs(csv_folpath, exist_ok=True)
-        optimizer = tf.keras.optimizers.SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
-        # optimizer = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
+        if n_classes == 1:
+            optimizer = tf.keras.optimizers.Adam(learning_rate=lr, beta_1=0.9, beta_2=0.999, epsilon=1e-07)
+        else:
+            optimizer = tf.keras.optimizers.SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
 
         for split_idx in range(n_splits):
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training start")
             tf.keras.backend.clear_session()
-            model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), img_ratio, n_classes)
-            #model = concat_model_regression((224, 224, 3), (1), int(2**hidden_dig), img_ratio)
+            if n_classes == 1:
+                model = concat_model_regression((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio)
+            else:
+                model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio, n_classes)
+
             # 訓練
             train_config = {
                 "split_folder": split_folder,
