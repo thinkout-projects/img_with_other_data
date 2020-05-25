@@ -11,7 +11,7 @@ def concat_model_classifier(input_shape1, input_shape2, hidden, ratio, classes):
     img_base_model = VGG16(include_top=False, weights='imagenet', input_shape=input1.shape[1:])(input1)
     img_x = GlobalAveragePooling2D()(img_base_model)
     img_len = img_x.shape[1]
-    par_len = int(ratio * img_len)
+    par_len = int(img_len * ratio / (1-ratio))
 
     input2 = Input(shape=input_shape2)
     par_x = Dense(par_len, kernel_initializer="he_normal")(input2)

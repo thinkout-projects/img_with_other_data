@@ -97,9 +97,9 @@ def main():
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training start")
             tf.keras.backend.clear_session()
             if n_classes == 1:
-                model = concat_model_regression((224, 224, 3), (1), int(2 ** hidden_dig), img_ratio)
+                model = concat_model_regression((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio)
             else:
-                model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), img_ratio, n_classes)
+                model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio, n_classes)
 
             # 訓練
             train_config = {
