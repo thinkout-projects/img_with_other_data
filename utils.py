@@ -15,7 +15,7 @@ def file_check(fs0, fs1):
     return True
 
 
-def plot_history_classifier(history, fpath):
+def plot_history_classification(history, fpath):
     acc = history.history['accuracy']
     val_acc = history.history['val_accuracy']
     loss = history.history['loss']

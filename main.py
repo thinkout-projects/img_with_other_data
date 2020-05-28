@@ -4,12 +4,12 @@ import shutil
 import pandas as pd
 import tensorflow as tf
 import optuna
-from utils import file_check, plot_history_classifier, plot_history_regression, model_delete, printWithDate, result_delete_check
+from utils import file_check, plot_history_classification, plot_history_regression, model_delete, printWithDate, result_delete_check
 from k_fold_split import Stratified_group_k_fold
 from data_augment import ExtraProcess, BasicProcess
-from models import concat_model_regression, concat_model_classifier
-from learning import train_regression, train_classifier
-from predict import predict_regression, predict_classifier
+from models import concat_model_regression, non_par_model_regression, concat_model_classification, non_par_model_classification
+from learning import train_regression, train_classification, non_par_train_regression, non_par_train_classification
+from predict import predict_regression, non_par_predict_regression, predict_classification, non_par_predict_classification
 from analysis import summary_classification, summary_regression
 
 
@@ -28,17 +28,18 @@ def main():
     file_col = "fileName"
     ID_col = "None"
     hasID = False if ID_col == "None" else True
-    par_col = "par"
+    par_col = "par" # 画像だけ解析の場合は"None"
+    hasPar = False if par_col == "None" else True
     tag_col = "tag"
     tags_to_label = {0: 0, 1: 1}
-    n_classes = 2
+    n_classes = 1
     n_splits = 5
     size = [224, 224]
     ch = 3
     basic_process = BasicProcess()
     extra_process = ExtraProcess(histogram_equalization=False)
-    n_trials = 10
-    epochs = 40
+    n_trials = 2
+    epochs = 2
     print(str(n_splits), "-fold", str(n_trials), "-trials", str(epochs) , "epochs")
     BATCH_SIZE = 32
     AUTOTUNE = tf.data.experimental.AUTOTUNE
@@ -58,8 +59,12 @@ def main():
     df = pd.read_csv(data_csv, encoding="shift-jis")
     assert file_check(list(df[file_col]), os.listdir(img_folder))
 
-    par_mean = df[par_col].mean()
-    par_std = df[par_col].std()
+    if hasPar:
+        par_mean = df[par_col].mean()
+        par_std = df[par_col].std()
+    else:
+        par_mean = 0
+        par_std = 1
 
     printWithDate("spliting dataset")
     sgkf = Stratified_group_k_fold(
@@ -68,6 +73,7 @@ def main():
         shuffle=True,
         split_info_folder = split_folder
     )
+
     if n_classes == 1:
         df_train_list, df_test_list = sgkf.k_fold_regressor(df)
     else:
@@ -78,10 +84,11 @@ def main():
         cycle_idx = trial.number
         lr = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
         hidden_dig = trial.suggest_int('hidden_dig', 6, 8)
-        if par_col == None or par_col == "None":
+        if not hasPar:
             par_ratio = 0
         else:
             par_ratio = trial.suggest_uniform('par_ratio', 0.2, 0.8)
+
 
         printWithDate("{}cycle start".format(cycle_idx))
         result_root = result_roothead + "_" + str(cycle_idx).zfill(3)
@@ -96,13 +103,20 @@ def main():
         else:
             optimizer = tf.keras.optimizers.SGD(lr=lr, decay=1e-6, momentum=0.9, nesterov=True)
 
+
         for split_idx in range(n_splits):
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training start")
             tf.keras.backend.clear_session()
             if n_classes == 1:
-                model = concat_model_regression((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio)
+                if hasPar:
+                    model = concat_model_regression((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio)
+                else:
+                    model = non_par_model_regression((224, 224, 3), int(2 ** hidden_dig))
             else:
-                model = concat_model_classifier((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio, n_classes)
+                if hasPar:
+                    model = concat_model_classification((224, 224, 3), (1), int(2 ** hidden_dig), par_ratio, n_classes)
+                else:
+                    model = non_par_model_classification((224, 224, 3), int(2 ** hidden_dig), n_classes)
 
             # 訓練
             train_config = {
@@ -127,19 +141,28 @@ def main():
                 "model_folder": model_folpath,
                 "model": model,
                 "loss": loss,
-                "metrics": metrics
+                "metrics": metrics,
+                "hasPar": hasPar
             }
+
             if n_classes == 1:
-                history = train_regression(train_config)
+                if hasPar:
+                    history = train_regression(train_config)
+                else:
+                    history = non_par_train_regression(train_config)
             else:
-                history = train_classifier(train_config)
+                if hasPar:
+                    history = train_classification(train_config)
+                else:
+                    history = non_par_train_classification(train_config)
+
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split training finish")
             # plotおよび削除
             plot_fpath = os.path.join(figure_folpath, "history_{}.png".format(split_idx))
             if n_classes == 1:
                 plot_history_regression(history, plot_fpath)
             else:
-                plot_history_classifier(history, plot_fpath)
+                plot_history_classification(history, plot_fpath)
             model_delete(model_folpath, split_idx)
             printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split evaluation start")
             predict_config = {
@@ -162,9 +185,16 @@ def main():
                 "csv_folpath": csv_folpath
             }
             if n_classes == 1:
-                predict_regression(predict_config)
+                if hasPar:
+                    predict_regression(predict_config)
+                else:
+                    non_par_predict_regression(predict_config)
             else:
-                predict_classifier(predict_config)
+                if hasPar:
+                    predict_classification(predict_config)
+                else:
+                    non_par_predict_classification(predict_config)
+
         printWithDate(str(cycle_idx) + "cycle, summary start")
         summary_config = {
             "n_splits": n_splits,
@@ -176,6 +206,7 @@ def main():
             return summary_regression(summary_config)
         else:
             return summary_classification(summary_config)
+
 
     study = optuna.create_study()
     study.optimize(each_cycle, n_trials=n_trials)
