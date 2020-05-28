@@ -78,7 +78,10 @@ def main():
         cycle_idx = trial.number
         lr = trial.suggest_loguniform('learning_rate', 1e-4, 1e-2)
         hidden_dig = trial.suggest_int('hidden_dig', 6, 8)
-        par_ratio = trial.suggest_uniform('par_ratio', 0.2, 0.8)
+        if par_col == None or par_col == "None":
+            par_ratio = 0
+        else:
+            par_ratio = trial.suggest_uniform('par_ratio', 0.2, 0.8)
 
         printWithDate("{}cycle start".format(cycle_idx))
         result_root = result_roothead + "_" + str(cycle_idx).zfill(3)
