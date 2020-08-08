@@ -84,6 +84,8 @@ def non_par_predict_regression(config):
                             standardized_params(tag, tag_mu, tag_sigma))
     ).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
+
+
     last_model_path = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))[0]
     model.load_weights(last_model_path)
     predict_result = model.predict(testset)
@@ -92,6 +94,7 @@ def non_par_predict_regression(config):
     df_result = pd.DataFrame(data=result_arr, columns = [file_col, "true", "predict"])
     df_result.to_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx)), index=False)
     return
+
 
 
 

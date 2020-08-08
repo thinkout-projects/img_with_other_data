@@ -22,15 +22,15 @@ def main():
     result_delete_check()
 
     printWithDate("main() function is started")
-    img_folder = "img_folder"
+    img_folder = "img"
     split_folder = "split"
     data_csv = "data.csv"
-    file_col = "fileName"
+    file_col = "filename"
     ID_col = "None"
     hasID = False if ID_col == "None" else True
-    par_col = "par" # 画像だけ解析の場合は"None"
+    par_col = "None" # 画像だけ解析の場合は"None"
     hasPar = False if par_col == "None" else True
-    tag_col = "tag"
+    tag_col = "6M_logMAR"
     tags_to_label = {0: 0, 1: 1}
     n_classes = 1
     n_splits = 5
@@ -38,10 +38,10 @@ def main():
     ch = 3
     basic_process = BasicProcess()
     extra_process = ExtraProcess(histogram_equalization=False)
-    n_trials = 2
-    epochs = 2
+    n_trials = 10
+    epochs = 40
     print(str(n_splits), "-fold", str(n_trials), "-trials", str(epochs) , "epochs")
-    BATCH_SIZE = 32
+    BATCH_SIZE = 16
     AUTOTUNE = tf.data.experimental.AUTOTUNE
     if n_classes >= 2:
         loss = "binary_crossentropy"
@@ -208,7 +208,7 @@ def main():
             return summary_classification(summary_config)
 
 
-    study = optuna.create_study()
+    study = optuna.create_study(direction="maximize")
     study.optimize(each_cycle, n_trials=n_trials)
     df_study = study.trials_dataframe(attrs=('number', 'value', 'params', 'state'))
     df_study.to_csv(result_summary_csv, index=False)

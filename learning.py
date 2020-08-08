@@ -117,7 +117,7 @@ def non_par_train_regression(config):
                                 standardized_params(tag, tag_mu, tag_sigma)),
         num_parallel_calls=AUTOTUNE
     ).cache()
-    trainset = trainset.shuffle(buffer_size=len(train_paths)).repeat(epochs).batch(BATCH_SIZE).prefetch(
+    trainset = trainset.shuffle(buffer_size=len(train_paths)).repeat(epochs*2).batch(BATCH_SIZE).prefetch(
         buffer_size=AUTOTUNE)
 
     # valset前処理
@@ -130,7 +130,7 @@ def non_par_train_regression(config):
                             standardized_params(tag, tag_mu, tag_sigma)),
         num_parallel_calls=AUTOTUNE
     ).cache()
-    valset = valset.repeat(epochs).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
+    valset = valset.repeat(epochs*2).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
     model_path = os.path.join(model_folder, "models_" + str(split_idx) + "_epoch{epoch:02d}.h5")
     mc_cb = tf.keras.callbacks.ModelCheckpoint(model_path, monitor='val_loss', mode='min', verbose=1,
