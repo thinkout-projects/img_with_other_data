@@ -10,7 +10,7 @@ from data_augment import ExtraProcess, BasicProcess
 from models import concat_model_regression, non_par_model_regression, concat_model_classification, non_par_model_classification
 from learning import train_regression, train_classification, non_par_train_regression, non_par_train_classification
 from predict import predict_regression, non_par_predict_regression, predict_classification, non_par_predict_classification
-from analysis import summary_classification, summary_regression
+from analysis import summary_classification, summary_regression, summary_failed
 
 
 
@@ -30,7 +30,7 @@ def main():
     hasID = False if ID_col == "None" else True
     par_col = "None" # 画像だけ解析の場合は"None"
     hasPar = False if par_col == "None" else True
-    tag_col = "6M_logMAR"
+    tag_col = "tag"
     tags_to_label = {0: 0, 1: 1}
     n_classes = 1
     n_splits = 5
@@ -184,16 +184,22 @@ def main():
                 "model": model,
                 "csv_folpath": csv_folpath
             }
+            is_model_not_exist = False
+
             if n_classes == 1:
                 if hasPar:
-                    predict_regression(predict_config)
+                    is_model_not_exist = predict_regression(predict_config)
                 else:
-                    non_par_predict_regression(predict_config)
+                    is_model_not_exist = non_par_predict_regression(predict_config)
             else:
                 if hasPar:
-                    predict_classification(predict_config)
+                    is_model_not_exist = predict_classification(predict_config)
                 else:
-                    non_par_predict_classification(predict_config)
+                    is_model_not_exist = non_par_predict_classification(predict_config)
+
+            if is_model_not_exist:
+                printWithDate(str(cycle_idx) + "cycle, " + str(split_idx) + "split, model is not saved")
+                break
 
         printWithDate(str(cycle_idx) + "cycle, summary start")
         summary_config = {
@@ -202,7 +208,11 @@ def main():
             "csv_folpath": csv_folpath,
             "pos_col": pos_col
         }
-        if n_classes == 1:
+        if is_model_not_exist:
+            printWithDate(str(cycle_idx) + "cycle, trial is failed")
+            return summary_failed(summary_config)
+
+        elif n_classes == 1:
             return summary_regression(summary_config)
         else:
             return summary_classification(summary_config)
