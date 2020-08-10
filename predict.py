@@ -5,6 +5,7 @@ import numpy as np
 import glob
 from data_loader import load_img, standardized_params, load_and_convert_onehot
 
+
 def predict_regression(config):
     split_folder = config["split_folder"]
     split_idx = config["split_idx"]
@@ -41,6 +42,11 @@ def predict_regression(config):
                                   standardized_params(tag, tag_mu, tag_sigma))
     ).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
+    last_models = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))
+    # modelが保存されなかったときはTrueを返す
+    if last_models == []:
+        return True
+
     last_model_path = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))[0]
     model.load_weights(last_model_path)
     predict_result = model.predict(testset)
@@ -48,7 +54,7 @@ def predict_regression(config):
     result_arr = np.array([list(test_df[file_col]), test_pars, test_tags, predict_result]).T
     df_result = pd.DataFrame(data=result_arr, columns = [file_col, par_col, "true", "predict"])
     df_result.to_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx)), index=False)
-    return
+    return False
 
 
 def non_par_predict_regression(config):
@@ -85,15 +91,19 @@ def non_par_predict_regression(config):
     ).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
 
+    last_models = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))
+    # modelが保存されなかったときはTrueを返す
+    if last_models == []:
+        return True
 
-    last_model_path = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))[0]
+    last_model_path = last_models[0]
     model.load_weights(last_model_path)
     predict_result = model.predict(testset)
     predict_result = [(i[0]*tag_sigma + tag_mu) for i in predict_result]
     result_arr = np.array([list(test_df[file_col]), test_tags, predict_result]).T
     df_result = pd.DataFrame(data=result_arr, columns = [file_col, "true", "predict"])
     df_result.to_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx)), index=False)
-    return
+    return False
 
 
 
@@ -133,6 +143,11 @@ def predict_classification(config):
       lambda path, par, label: ((load_img(path, size, ch), standardized_params(par, par_mean, par_std)), load_and_convert_onehot(label, n_classes))
     ).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
+    last_models = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))
+    # modelが保存されなかったときはTrueを返す
+    if last_models == []:
+        return True
+
     last_model_path = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))[0]
     model.load_weights(last_model_path)
     y_pred = model.predict(testset)
@@ -141,7 +156,7 @@ def predict_classification(config):
     result_arr = np.concatenate([result_arr, y_pred], axis=1)
     df_result = pd.DataFrame(data=result_arr, columns = [file_col, par_col, "true", "predict", 0, 1])
     df_result.to_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx)), index=False)
-    return
+    return False
 
 
 def non_par_predict_classification(config):
@@ -176,6 +191,11 @@ def non_par_predict_classification(config):
       lambda path, label: ((load_img(path, size, ch)), load_and_convert_onehot(label, n_classes))
     ).batch(BATCH_SIZE).prefetch(buffer_size=AUTOTUNE)
 
+    last_models = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))
+    # modelが保存されなかったときはTrueを返す
+    if last_models == []:
+        return True
+
     last_model_path = glob.glob(os.path.join(model_folder, "models_{}*".format(split_idx)))[0]
     model.load_weights(last_model_path)
     y_pred = model.predict(testset)
@@ -184,4 +204,4 @@ def non_par_predict_classification(config):
     result_arr = np.concatenate([result_arr, y_pred], axis=1)
     df_result = pd.DataFrame(data=result_arr, columns = [file_col, "true", "predict", 0, 1])
     df_result.to_csv(os.path.join(csv_folpath, "miss_{}.csv".format(split_idx)), index=False)
-    return
+    return False
