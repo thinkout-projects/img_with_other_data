@@ -23,11 +23,3 @@ def summary_regression(config):
     df_summary = pd.concat(dfs)
     df_summary.to_csv(os.path.join(result_root, "miss_summary.csv"), index=False)
     return stats.pearsonr(df_summary["true"], df_summary["predict"])[0]
-
-
-def summary_failed(config):
-    n_splits = config["n_splits"]
-    result_root = config["result_root"]
-    csv_folpath = config["csv_folpath"]
-
-    return -100
